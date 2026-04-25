@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Abi Tracker"/>
+<title>Abi Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#FAFAFA;font-family:'Comic Neue',cursive;max-width:390px;margin:0 auto;min-height:100vh;overflow-x:hidden;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-12px)}60%{transform:translateY(-6px)}}
+@keyframes cloudDrift{0%{transform:translateX(-10px)}100%{transform:translateX(10px)}}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(232,25,60,0.4)}50%{box-shadow:0 0 0 12px rgba(232,25,60,0)}}
+@keyframes textWobble{0%,100%{transform:skewX(-2deg)}50%{transform:skewX(2deg)}}
+@keyframes pop{0%{transform:scale(0.8);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes drawLine{from{stroke-dashoffset:800}to{stroke-dashoffset:0}}
+@keyframes fastingPulse{0%,100%{opacity:1}50%{opacity:0.6}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.float{animation:float 3s ease-in-out infinite}
+.bounce-icon{animation:bounce 1.5s ease-in-out infinite}
+.pulse-btn{animation:pulseRed 2s ease-in-out infinite}
+.wobble-text{animation:textWobble 2s ease-in-out infinite}
+.draw-line{stroke-dasharray:800;animation:drawLine 1.5s ease forwards}
+.fasting-active{animation:fastingPulse 2s ease-in-out infinite}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+.cloud-blob{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+.screen{position:relative;z-index:1;padding:4px 14px}
+input{-webkit-appearance:none;appearance:none}
+input:focus{outline:none;border-color:#E8193C!important}
+input::placeholder{color:#BBB}
+button:active{transform:scale(0.95)}
+.nav-btn:active{transform:scale(0.9) rotate(-5deg)!important}
+.card{background:#fff;border:3px solid #1A1A1A;border-radius:20px;padding:16px 18px;margin-bottom:10px}
+.card-shadow{box-shadow:5px 5px 0 #1A1A1A}
+.card-shadow-sm{box-shadow:4px 4px 0 #1A1A1A}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="cloud-blob" style="top:5%;left:-5%;width:120px;height:72px;background:#E0E0E0;opacity:0.4;animation:cloudDrift 3s ease-in-out infinite alternate"></div>
+<div class="cloud-blob" style="top:20%;right:-5%;width:90px;height:54px;background:#E0E0E0;opacity:0.3;animation:cloudDrift 4.5s ease-in-out infinite alternate"></div>
+<div class="cloud-blob" style="top:60%;left:-8%;width:100px;height:60px;background:#E0E0E0;opacity:0.25;animation:cloudDrift 3.8s ease-in-out infinite alternate"></div>
+
+<div style="padding:14px 20px 0;display:flex;justify-content:space-between;font-size:11px;color:#888;position:relative;z-index:1">
+  <span id="clock" style="font-family:'Bangers',cursive;letter-spacing:2px"></span>
+  <span id="spinner-wrap">●●●</span>
+</div>
+<div style="padding:10px 20px 6px;position:relative;z-index:1">
+  <div id="date-label" style="font-size:10px;color:#888;letter-spacing:2px;text-transform:uppercase"></div>
+  <div id="screen-title" class="wobble-text" style="font-size:32px;font-family:'Bangers',cursive;letter-spacing:2px;color:#1A1A1A;text-shadow:3px 3px 0 #E8193C,5px 5px 0 #1A1A1A"></div>
+  <div id="quip" style="font-size:11px;font-weight:700;color:#E8193C;margin-top:2px"></div>
+  <div id="error-msg" class="hidden" style="font-size:11px;color:#E8193C;margin-top:4px;font-weight:700"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="screen-dashboard" class="screen">
+  <div style="background:#E8193C;border-radius:24px 24px 24px 6px;padding:18px 20px;margin-bottom:10px;border:3px solid #1A1A1A;box-shadow:5px 5px 0 #1A1A1A;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 90% 50%,transparent 0deg,transparent 10deg,rgba(255,255,255,0.05) 10deg,rgba(255,255,255,0.05) 11deg);border-radius:inherit;pointer-events:none"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:3px;text-transform:uppercase;font-weight:700">WEIGHT</div>
+        <div id="weight-display" style="font-family:'Bangers',cursive;font-size:52px;color:white;line-height:1;letter-spacing:2px;text-shadow:3px 3px 0 rgba(0,0,0,0.3)"></div>
+        <div id="target-label" style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:4px"></div>
+      </div>
+      <div class="float" style="font-size:52px">⚖️</div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="background:rgba(255,255,255,0.2);border-radius:100px;height:8px;overflow:hidden">
+        <div id="journey-bar" style="height:100%;background:white;border-radius:100px;transition:width 0.8s ease;width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:9px;color:rgba(255,255,255,0.7);font-family:'Bangers',cursive;letter-spacing:1px">75.5kg start</span>
+        <span id="journey-pct" style="font-size:9px;color:rgba(255,255,255,0.9);font-family:'Bangers',cursive;letter-spacing:1px"></span>
+        <span style="font-size:9px;color:rgba(255,255,255,0.7);font-family:'Bangers',cursive;letter-spacing:1px">70kg goal</span>
+      </div>
+    </div>
+    <div style="display:inline-block;margin-top:8px;background:white;border:2px solid #1A1A1A;border-radius:10px;padding:3px 12px;font-size:11px;font-weight:700;color:#1A1A1A;font-family:'Bangers',cursive;letter-spacing:1px">TAL TAL TAL TAL!!</div>
+  </div>
+
+  <div id="fasting-card" style="border-radius:16px;padding:14px 16px;border:3px solid #1A1AE8;box-shadow:4px 4px 0 #1A1A1A;margin-bottom:10px;background:rgba(26,26,232,0.06)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div id="fasting-label" style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#1A1AE8"></div>
+      <div id="fasting-countdown" style="font-family:'Bangers',cursive;font-size:13px;color:#1A1A1A;letter-spacing:1px"></div>
+    </div>
+    <div style="background:#E8E8E8;border-radius:100px;height:8px;border:2px solid #1A1A1A;overflow:hidden">
+      <div id="fasting-bar" style="height:100%;background:#1A1AE8;border-radius:100px;transition:width 0.5s ease;width:0%"></div>
+    </div>
+    <div style="font-size:10px;color:#888;margin-top:5px">Eating window: 1:00 PM – 7:30 PM</div>
+  </div>
+
+  <div class="card card-shadow" style="display:flex;justify-content:space-around;align-items:center;padding:18px 12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="position:relative;width:90px;height:90px">
+        <svg width="90" height="90" style="transform:rotate(-90deg);position:absolute">
+          <circle cx="45" cy="45" r="37" fill="none" stroke="#E8E8E8" stroke-width="8" stroke-dasharray="6 3"/>
+          <circle id="cal-ring" cx="45" cy="45" r="37" fill="none" stroke="#E8193C" stroke-width="8" stroke-dasharray="0 232" stroke-linecap="round" style="transition:stroke-dasharray 1s cubic-bezier(0.175,0.885,0.32,1.275)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div id="cal-ring-val" style="font-size:16px;font-weight:700;font-family:'Bangers',cursive;color:#1A1A1A;letter-spacing:1px">0</div>
+          <div style="font-size:9px;color:#888">kcal</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-family:'Bangers',cursive;letter-spacing:2px;color:#1A1A1A">CALORIES</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div class="bounce-icon" style="font-size:30px">🍖</div>
+      <div style="font-size:8px;font-family:'Bangers',cursive;letter-spacing:2px;color:#888">FUELING</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="position:relative;width:90px;height:90px">
+        <svg width="90" height="90" style="transform:rotate(-90deg);position:absolute">
+          <circle cx="45" cy="45" r="37" fill="none" stroke="#E8E8E8" stroke-width="8" stroke-dasharray="6 3"/>
+          <circle id="prot-ring" cx="45" cy="45" r="37" fill="none" stroke="#1A1AE8" stroke-width="8" stroke-dasharray="0 232" stroke-linecap="round" style="transition:stroke-dasharray 1s cubic-bezier(0.175,0.885,0.32,1.275)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div id="prot-ring-val" style="font-size:16px;font-weight:700;font-family:'Bangers',cursive;color:#1A1A1A;letter-spacing:1px">0</div>
+          <div style="font-size:9px;color:#888">g</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-family:'Bangers',cursive;letter-spacing:2px;color:#1A1A1A">PROTEIN</div>
+    </div>
+  </div>
+
+  <div class="card card-shadow-sm">
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-family:'Bangers',cursive;font-size:14px;letter-spacing:1px">🔥 CALORIES</div>
+        <div style="font-size:12px;font-weight:700;color:#E8193C"><span id="cal-val">0</span> <span style="color:#888">/ 1700 kcal</span></div>
+      </div>
+      <div style="background:#E8E8E8;border-radius:100px;height:10px;overflow:hidden;border:2px solid #1A1A1A">
+        <div id="cal-bar" style="height:100%;background:repeating-linear-gradient(45deg,#E8193C,#E8193C 6px,#E8193Ccc 6px,#E8193Ccc 12px);border-radius:100px;transition:width 0.8s ease;width:0%"></div>
+      </div>
+      <div id="cal-remaining" style="font-size:10px;color:#888;margin-top:4px"></div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-family:'Bangers',cursive;font-size:14px;letter-spacing:1px">💪 PROTEIN</div>
+        <div style="font-size:12px;font-weight:700;color:#1A1AE8"><span id="prot-val">0</span> <span style="color:#888">/ 150g</span></div>
+      </div>
+      <div style="background:#E8E8E8;border-radius:100px;height:10px;overflow:hidden;border:2px solid #1A1A1A">
+        <div id="prot-bar" style="height:100%;background:repeating-linear-gradient(45deg,#1A1AE8,#1A1AE8 6px,#1A1AE8cc 6px,#1A1AE8cc 12px);border-radius:100px;transition:width 0.8s ease;width:0%"></div>
+      </div>
+      <div id="prot-remaining" style="font-size:10px;color:#888;margin-top:4px"></div>
+    </div>
+  </div>
+
+  <button onclick="showScreen('log')" class="pulse-btn" style="width:100%;background:#1A1A1A;border:3px solid #1A1A1A;border-radius:16px 16px 16px 4px;padding:16px;font-size:18px;font-family:'Bangers',cursive;letter-spacing:3px;color:white;cursor:pointer;box-shadow:4px 4px 0 #E8193C;margin-bottom:10px">
+    ⚡ LOG TODAY'S ENTRY ⚡
+  </button>
+</div>
+
+<!-- LOG -->
+<div id="screen-log" class="screen hidden">
+  <div style="background:white;border-radius:20px 20px 6px 6px;padding:16px 18px;margin-bottom:3px;border:3px solid #1A1A1A;box-shadow:4px 4px 0 #1A1A1A">
+    <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#888;margin-bottom:8px">⚖️ WEIGHT</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input id="input-weight" type="number" step="0.1" placeholder="75.5" style="flex:1;background:#FAFAFA;border:2.5px solid #E0E0E0;border-radius:12px;padding:13px 16px;color:#1A1A1A;font-size:22px;font-family:'Bangers',cursive;letter-spacing:2px"/>
+      <span style="font-family:'Bangers',cursive;font-size:16px;color:#888">kg</span>
+    </div>
+  </div>
+  <div style="background:white;border-radius:6px;padding:16px 18px;margin-bottom:3px;border:3px solid #1A1A1A;box-shadow:4px 4px 0 #1A1A1A">
+    <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#888;margin-bottom:8px">🔥 CALORIES</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input id="input-calories" type="number" placeholder="1700" style="flex:1;background:#FAFAFA;border:2.5px solid #E0E0E0;border-radius:12px;padding:13px 16px;color:#1A1A1A;font-size:22px;font-family:'Bangers',cursive;letter-spacing:2px"/>
+      <span style="font-family:'Bangers',cursive;font-size:16px;color:#888">kcal</span>
+    </div>
+  </div>
+  <div style="background:white;border-radius:6px 6px 20px 20px;padding:16px 18px;margin-bottom:3px;border:3px solid #1A1A1A;box-shadow:4px 4px 0 #1A1A1A">
+    <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#888;margin-bottom:8px">💪 PROTEIN</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input id="input-protein" type="number" placeholder="150" style="flex:1;background:#FAFAFA;border:2.5px solid #E0E0E0;border-radius:12px;padding:13px 16px;color:#1A1A1A;font-size:22px;font-family:'Bangers',cursive;letter-spacing:2px"/>
+      <span style="font-family:'Bangers',cursive;font-size:16px;color:#888">g</span>
+    </div>
+  </div>
+  <div style="height:12px"></div>
+  <button id="save-btn" onclick="saveEntry()" style="width:100%;background:#E8193C;border:3px solid #1A1A1A;border-radius:16px 16px 16px 4px;padding:16px;font-size:20px;font-family:'Bangers',cursive;letter-spacing:3px;color:white;cursor:pointer;box-shadow:4px 4px 0 #1A1A1A;transition:all 0.3s ease">⚡ SAVE ENTRY ⚡</button>
+  <div id="save-confirm" class="hidden" style="text-align:center;margin-top:12px;font-family:'Bangers',cursive;font-size:14px;letter-spacing:2px;color:#E8193C">NAKAMA APPROVED 🏴‍☠️</div>
+</div>
+
+<!-- PROGRESS -->
+<div id="screen-progress" class="screen hidden">
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <div style="flex:1;background:white;border-radius:16px;padding:12px 8px;border:3px solid #1A1A1A;box-shadow:4px 4px 0 #1A1A1A;text-align:center">
+      <div style="font-size:18px">📉</div>
+      <div id="stat-lost" style="font-family:'Bangers',cursive;font-size:18px;color:#E8193C;letter-spacing:1px">-0kg</div>
+      <div style="font-size:8px;color:#888;font-family:'Bangers',cursive;letter-spacing:1px">LOST SO FAR</div>
+    </div>
+    <div style="flex:1;background:white;border-radius:16px;padding:12px 8px;border:3px solid #1A1A1A;box-shadow:4px 4px 0 #1A1A1A;text-align:center">
+      <div style="font-size:18px">🎯</div>
+      <div id="stat-togo" style="font-family:'Bangers',cursive;font-size:18px;color:#1A1AE8;letter-spacing:1px">5.5kg</div>
+      <div style="font-size:8px;color:#888;font-family:'Bangers',cursive;letter-spacing:1px">TO GO</div>
+    </div>
+    <div style="flex:1;background:white;border-radius:16px;padding:12px 8px;border:3px solid #1A1A1A;box-shadow:4px 4px 0 #1A1A1A;text-align:center">
+      <div style="font-size:18px">💪</div>
+      <div id="stat-avgprot" style="font-family:'Bangers',cursive;font-size:18px;color:#16A34A;letter-spacing:1px">0g</div>
+      <div style="font-size:8px;color:#888;font-family:'Bangers',cursive;letter-spacing:1px">AVG PROTEIN</div>
+    </div>
+  </div>
+  <div class="card card-shadow-sm">
+    <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#888;margin-bottom:8px">🎯 MISSION: 70KG</div>
+    <div style="background:#E8E8E8;border-radius:100px;height:10px;overflow:hidden;border:2px solid #1A1A1A">
+      <div id="mission-bar" style="height:100%;background:repeating-linear-gradient(45deg,#E8193C,#E8193C 6px,#E8193Ccc 6px,#E8193Ccc 12px);border-radius:100px;transition:width 0.8s ease;width:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      <span style="font-size:10px;color:#888">Start: 75.5kg</span>
+      <span id="mission-pct" style="font-size:10px;color:#E8193C;font-weight:700"></span>
+      <span style="font-size:10px;color:#888">Goal: 70kg</span>
+    </div>
+  </div>
+  <div class="card card-shadow" style="padding:16px 14px 10px">
+    <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#888;margin-bottom:8px">⚖️ LESS OBESE ARC — WEIGHT</div>
+    <svg id="weight-chart" width="100%" viewBox="0 0 320 110" style="overflow:visible">
+      <text x="160" y="55" text-anchor="middle" style="font-family:'Bangers',cursive;font-size:12px;fill:#888">LOG MORE DAYS TO SEE YOUR ARC 📈</text>
+    </svg>
+  </div>
+  <div class="card card-shadow" style="padding:16px 14px 10px">
+    <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:2px;color:#888;margin-bottom:8px">💪 DAILY PROTEIN</div>
+    <svg id="protein-chart" width="100%" viewBox="0 0 320 90" style="overflow:visible"></svg>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;margin-bottom:6px">
+      <div style="font-size:10px;color:#888">Goal: 150g/day</div>
+      <div id="avg-prot-label" style="font-size:10px;color:#1A1AE8;font-weight:700">avg: 0g</div>
+    </div>
+    <div style="background:#E8E8E8;border-radius:100px;height:10px;overflow:hidden;border:2px solid #1A1A1A">
+      <div id="avg-prot-bar" style="height:100%;background:repeating-linear-gradient(45deg,#1A1AE8,#1A1AE8 6px,#1A1AE8cc 6px,#1A1AE8cc 12px);border-radius:100px;transition:width 0.8s ease;width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:390px;background:#1A1A1A;border-top:3px solid #1A1A1A;display:flex;justify-content:space-around;padding:10px 0;padding-bottom:calc(10px + env(safe-area-inset-bottom));z-index:100">
+  <button id="nav-dashboard" onclick="showScreen('dashboard')" class="nav-btn" style="background:#E8193C;border:2px solid white;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 18px">
+    <span style="font-size:20px">🏠</span><span style="font-size:9px;letter-spacing:2px;font-family:'Bangers',cursive;color:white">TODAY</span>
+  </button>
+  <button id="nav-log" onclick="showScreen('log')" class="nav-btn" style="background:transparent;border:2px solid transparent;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 18px">
+    <span style="font-size:20px">⚡</span><span style="font-size:9px;letter-spacing:2px;font-family:'Bangers',cursive;color:#888">LOG</span>
+  </button>
+  <button id="nav-progress" onclick="showScreen('progress')" class="nav-btn" style="background:transparent;border:2px solid transparent;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 18px">
+    <span style="font-size:20px">📈</span><span style="font-size:9px;letter-spacing:2px;font-family:'Bangers',cursive;color:#888">PROGRESS</span>
+  </button>
+</div>
+
+<script>
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbw8QHsj1yqcYIFVETzH0xZ0Cw5V87zoFxFkRCNQU2-GYe9kxY1K1mECtrgdCLgrWET4/exec";
+const GOALS={cal:1700,prot:150,startW:75.5,targetW:70,eatStart:13*60,eatEnd:19*60+30};
+const QUIPS=["YOU FAT BASTARD. LOG YOUR FOOD. 💀","YOU LESS OBESE YET OR WHAT 🐋","BRO ATE LIKE A PIG AND FORGOT TO LOG IT 🐷","YOUR BELLY ENTERED THE ROOM BEFORE YOU DID 😭","PUT DOWN THE FORK AND OPEN THIS APP 🍴","GEAR 5: STOP BEING A LITTLE BITCH ARC 🌀","ABI YOUR METABOLISM IS NOT YOUR FRIEND RN 💔","LOG IT OR I WILL HAUNT YOUR DREAMS 👻","YOU ABSOLUTE UNIT. TRACK YOUR CALORIES. 🏋️","BRO SKIPPED THE GYM AGAIN DIDN'T HE 😤","YOUR REFLECTION IS BEGGING YOU TO LOG 🪞","STOP BEING A CLOWN AND HIT YOUR PROTEIN 🤡","ABI YOU SNACKED AND YOU KNOW IT 🍪","THE AUDACITY TO NOT LOG. DISGUSTING. 🫵","BUILT DIFFERENT? NAH. BUILT WIDE. 😂","THE DOUBLE CHIN SAID GOOD MORNING 🫡","70KG WON'T HIT ITSELF MATE 🎯","YOUR FUTURE SELF IS JUDGING YOU RN 👀"];
+let history=[];
+
+function fmtDate(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function todayStr(){return fmtDate(new Date());}
+function setError(msg){const el=document.getElementById('error-msg');if(msg){el.textContent='⚠️ '+msg;el.classList.remove('hidden');}else el.classList.add('hidden');}
+function setLoading(on){document.getElementById('spinner-wrap').innerHTML=on?'<span class="spin">⟳</span> ●●●':'●●●';}
+
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.getHours()+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('date-label').textContent=n.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'}).toUpperCase();
+}
+updateClock();setInterval(updateClock,10000);
+document.getElementById('quip').textContent=QUIPS[Math.floor(Math.random()*QUIPS.length)];
+
+function updateFasting(){
+  const now=new Date(),mins=now.getHours()*60+now.getMinutes();
+  const windowLen=GOALS.eatEnd-GOALS.eatStart,fastLen=1440-windowLen;
+  const lbl=document.getElementById('fasting-label'),cd=document.getElementById('fasting-countdown');
+  const bar=document.getElementById('fasting-bar'),card=document.getElementById('fasting-card');
+  if(mins>=GOALS.eatStart&&mins<GOALS.eatEnd){
+    const rem=GOALS.eatEnd-mins;
+    lbl.textContent='EATING WINDOW OPEN 🍖';lbl.style.color='#16A34A';lbl.classList.remove('fasting-active');
+    cd.textContent=Math.floor(rem/60)+'h '+(rem%60)+'m left';
+    bar.style.background='#16A34A';bar.style.width=Math.min(((mins-GOALS.eatStart)/windowLen)*100,100)+'%';
+    card.style.borderColor='#16A34A';card.style.background='rgba(22,163,74,0.06)';
+  }else{
+    const minsUntil=mins<GOALS.eatStart?GOALS.eatStart-mins:1440-mins+GOALS.eatStart;
+    lbl.textContent='FASTING MODE 🔒';lbl.style.color='#1A1AE8';lbl.classList.add('fasting-active');
+    cd.textContent=Math.floor(minsUntil/60)+'h '+(minsUntil%60)+'m until 1PM';
+    bar.style.background='#1A1AE8';
+    const elapsed=mins>=GOALS.eatEnd?mins-GOALS.eatEnd:1440-GOALS.eatStart+mins;
+    bar.style.width=Math.min((elapsed/fastLen)*100,100)+'%';
+    card.style.borderColor='#1A1AE8';card.style.background='rgba(26,26,232,0.06)';
+  }
+}
+updateFasting();setInterval(updateFasting,30000);
+
+async function readSheet(){
+  const res=await fetch(SCRIPT_URL+'?t='+Date.now());
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const json=await res.json();
+  if(json.error)throw new Error(json.error);
+  return Array.isArray(json)?json.filter(r=>r.date):[];
+}
+
+async function appendRow(date,weight,calories,protein){
+  const res=await fetch(SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({date,weight,calories,protein,notes:''})
+  });
+  if(!res.ok)throw new Error('Write HTTP '+res.status);
+}
+
+function renderDashboard(){
+  const today=history.find(r=>r.date===todayStr())||{calories:0,protein:0,weight:GOALS.startW};
+  const curW=history.length?Number(history[history.length-1].weight):GOALS.startW;
+  const lost=Math.max(0,GOALS.startW-curW),toGo=Math.max(0,curW-GOALS.targetW);
+  const pct=Math.min((lost/(GOALS.startW-GOALS.targetW))*100,100);
+  document.getElementById('weight-display').innerHTML=curW+'<span style="font-size:22px">kg</span>';
+  document.getElementById('target-label').textContent='🎯 Target: '+GOALS.targetW+'kg · '+toGo.toFixed(1)+'kg to go';
+  document.getElementById('journey-bar').style.width=pct.toFixed(0)+'%';
+  document.getElementById('journey-pct').textContent=pct.toFixed(0)+'% there';
+  const circ=2*Math.PI*37;
+  const cal=Number(today.calories)||0,prot=Number(today.protein)||0;
+  document.getElementById('cal-ring').setAttribute('stroke-dasharray',`${circ*Math.min(cal/GOALS.cal,1)} ${circ}`);
+  document.getElementById('prot-ring').setAttribute('stroke-dasharray',`${circ*Math.min(prot/GOALS.prot,1)} ${circ}`);
+  document.getElementById('cal-ring-val').textContent=cal;
+  document.getElementById('prot-ring-val').textContent=prot;
+  document.getElementById('cal-val').textContent=cal;
+  document.getElementById('prot-val').textContent=prot;
+  document.getElementById('cal-bar').style.width=Math.min((cal/GOALS.cal)*100,100)+'%';
+  document.getElementById('prot-bar').style.width=Math.min((prot/GOALS.prot)*100,100)+'%';
+  document.getElementById('cal-remaining').textContent=(GOALS.cal-cal)+' kcal left · '+Math.round((cal/GOALS.cal)*100)+'% done';
+  document.getElementById('prot-remaining').textContent=(GOALS.prot-prot)+'g left · '+Math.round((prot/GOALS.prot)*100)+'% done';
+}
+
+function renderProgress(){
+  const curW=history.length?Number(history[history.length-1].weight):GOALS.startW;
+  const lost=Math.max(0,GOALS.startW-curW),toGo=Math.max(0,curW-GOALS.targetW);
+  const pct=Math.min((lost/(GOALS.startW-GOALS.targetW))*100,100);
+  const avg=history.length?Math.round(history.reduce((s,d)=>s+Number(d.protein),0)/history.length):0;
+  document.getElementById('stat-lost').textContent='-'+lost.toFixed(1)+'kg';
+  document.getElementById('stat-togo').textContent=toGo.toFixed(1)+'kg';
+  document.getElementById('stat-avgprot').textContent=avg+'g';
+  document.getElementById('mission-bar').style.width=pct.toFixed(0)+'%';
+  document.getElementById('mission-pct').textContent=pct.toFixed(0)+'% complete';
+  document.getElementById('avg-prot-label').textContent='avg: '+avg+'g';
+  document.getElementById('avg-prot-bar').style.width=Math.min((avg/GOALS.prot)*100,100)+'%';
+  const last7=history.slice(-7);
+  renderWeightChart(last7);renderProteinChart(last7);
+}
+
+function renderWeightChart(data){
+  const svg=document.getElementById('weight-chart');
+  if(data.length<2){svg.innerHTML='<text x="160" y="55" text-anchor="middle" style="font-family:\'Bangers\',cursive;font-size:12px;fill:#888">LOG MORE DAYS TO SEE YOUR ARC 📈</text>';return;}
+  const W=320,H=110,PT={top:16,right:12,bottom:24,left:36};
+  const vals=data.map(d=>Number(d.weight)),minV=Math.min(...vals)-0.5,maxV=Math.max(...vals)+0.5;
+  const xS=i=>PT.left+(i/(data.length-1))*(W-PT.left-PT.right);
+  const yS=v=>PT.top+(1-(v-minV)/(maxV-minV))*(H-PT.top-PT.bottom);
+  const pathD=data.map((d,i)=>`${i===0?'M':'L'} ${xS(i).toFixed(1)} ${yS(Number(d.weight)).toFixed(1)}`).join(' ');
+  const areaD=`${pathD} L ${xS(data.length-1).toFixed(1)} ${H-PT.bottom} L ${xS(0).toFixed(1)} ${H-PT.bottom} Z`;
+  let html='';
+  [minV+0.5,(minV+maxV)/2,maxV-0.5].forEach(v=>{
+    html+=`<line x1="${PT.left}" x2="${W-PT.right}" y1="${yS(v).toFixed(1)}" y2="${yS(v).toFixed(1)}" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="4 3"/>`;
+    html+=`<text x="${PT.left-4}" y="${(yS(v)+4).toFixed(1)}" text-anchor="end" style="font-size:8px;font-family:'Bangers',cursive;fill:#888">${v.toFixed(1)}</text>`;
+  });
+  html+=`<path d="${areaD}" fill="rgba(232,25,60,0.1)"/>`;
+  html+=`<path d="${pathD}" fill="none" stroke="#E8193C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="draw-line"/>`;
+  data.forEach((d,i)=>{
+    const isLast=i===data.length-1;
+    html+=`<circle cx="${xS(i).toFixed(1)}" cy="${yS(Number(d.weight)).toFixed(1)}" r="${isLast?5:3.5}" fill="${isLast?'#E8193C':'white'}" stroke="#E8193C" stroke-width="2"/>`;
+    html+=`<text x="${xS(i).toFixed(1)}" y="${H-PT.bottom+14}" text-anchor="middle" style="font-size:8px;font-family:'Bangers',cursive;fill:${isLast?'#E8193C':'#888'}">${String(d.date).split(' ')[0]}</text>`;
+  });
+  svg.innerHTML=html;
+}
+
+function renderProteinChart(data){
+  const svg=document.getElementById('protein-chart');
+  if(!data.length){svg.innerHTML='';return;}
+  const W=320,H=90,PT={top:10,right:12,bottom:24,left:10};
+  const maxP=Math.max(...data.map(d=>Number(d.protein)),GOALS.prot)+10;
+  const colW=(W-PT.left-PT.right)/data.length,barW=Math.max(colW-8,10);
+  const xC=i=>PT.left+(i+0.5)*colW,bH=v=>Math.max(((v/maxP)*(H-PT.top-PT.bottom)),2);
+  let html='';
+  data.forEach((d,i)=>{
+    const isLast=i===data.length-1,bh=bH(Number(d.protein)),by=H-PT.bottom-bh;
+    html+=`<rect x="${(xC(i)-barW/2).toFixed(1)}" y="${by.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="4" fill="${isLast?'#1A1AE8':'rgba(26,26,232,0.33)'}" stroke="#1A1A1A" stroke-width="1.5"/>`;
+    html+=`<text x="${xC(i).toFixed(1)}" y="${H-PT.bottom+14}" text-anchor="middle" style="font-size:8px;font-family:'Bangers',cursive;fill:${isLast?'#1A1AE8':'#888'}">${String(d.date).split(' ')[0]}</text>`;
+    if(isLast)html+=`<text x="${xC(i).toFixed(1)}" y="${(by-4).toFixed(1)}" text-anchor="middle" style="font-size:8px;font-family:'Bangers',cursive;fill:#1A1AE8">${d.protein}g</text>`;
+  });
+  svg.innerHTML=html;
+}
+
+function showScreen(name){
+  ['dashboard','log','progress'].forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
+    const nb=document.getElementById('nav-'+s);
+    if(s===name){nb.style.background='#E8193C';nb.style.border='2px solid white';nb.querySelector('span:last-child').style.color='white';}
+    else{nb.style.background='transparent';nb.style.border='2px solid transparent';nb.querySelector('span:last-child').style.color='#888';}
+  });
+  const titles={dashboard:"TODAY'S HAUL",log:"LOG IT!!",progress:"THE JOURNEY"};
+  document.getElementById('screen-title').textContent=titles[name];
+  document.getElementById('quip').style.display=name==='dashboard'?'block':'none';
+  if(name==='progress')renderProgress();
+}
+
+async function saveEntry(){
+  const w=parseFloat(document.getElementById('input-weight').value);
+  const c=parseInt(document.getElementById('input-calories').value);
+  const p=parseInt(document.getElementById('input-protein').value);
+  if(!w&&!c&&!p)return;
+  const btn=document.getElementById('save-btn');
+  btn.textContent='SAVING... ⟳';btn.style.background='#666';btn.disabled=true;
+  setError('');
+  try{
+    const curW=history.length?Number(history[history.length-1].weight):GOALS.startW;
+    await appendRow(todayStr(),w||curW,c||0,p||0);
+    await new Promise(r=>setTimeout(r,2000));
+    history=await readSheet();
+    renderDashboard();
+    document.getElementById('input-weight').value='';
+    document.getElementById('input-calories').value='';
+    document.getElementById('input-protein').value='';
+    btn.textContent='✓ LOGGED!! YOHOHOHO!!';btn.style.background='#22C55E';
+    btn.style.borderRadius='20px';btn.style.boxShadow='4px 4px 0 #16A34A';
+    document.getElementById('save-confirm').classList.remove('hidden');
+    setTimeout(()=>{
+      btn.textContent='⚡ SAVE ENTRY ⚡';btn.style.background='#E8193C';
+      btn.style.borderRadius='16px 16px 16px 4px';btn.style.boxShadow='4px 4px 0 #1A1A1A';
+      btn.disabled=false;document.getElementById('save-confirm').classList.add('hidden');
+    },2500);
+  }catch(e){
+    setError('Failed to save: '+e.message);
+    btn.textContent='⚡ SAVE ENTRY ⚡';btn.style.background='#E8193C';btn.disabled=false;
+  }
+}
+
+async function init(){
+  setLoading(true);
+  try{history=await readSheet();setError('');}
+  catch(e){setError('Could not load data: '+e.message);}
+  setLoading(false);
+  renderDashboard();
+}
+init();
+</script>
+</body>
+</html>
